@@ -1,0 +1,96 @@
+class Category:
+    def __init__(self, name):
+        self.name = name
+        self.ledger = []
+
+    def deposit(self, amount, description=""):
+        self.ledger.append({"amount": amount, "description": description})
+
+    def withdraw(self, amount, description=""):
+        if self.check_funds(amount):
+            self.ledger.append({"amount": -amount, "description": description})
+            return True
+        else:
+            return False
+
+    def check_funds(self, amount):
+        total = sum(item["amount"] for item in self.ledger)
+        return total >= amount
+
+    def get_balance(self):
+        total_deposits = sum(item["amount"] for item in self.ledger if item["amount"] > 0)
+        total_withdrawals = sum(item["amount"] for item in self.ledger if item["amount"] < 0)
+        return total_deposits + total_withdrawals
+
+    def transfer(self, amount, other_category):
+        if self.check_funds(amount):
+            self.withdraw(amount, f"Transfer to {other_category.name}")
+            other_category.deposit(amount, f"Transfer from {self.name}")
+            return True
+        else:
+            return False
+
+
+    def __str__(self):
+        title = f"{self.name.center(30, '*')}\n"
+        items = ""
+        for item in self.ledger:
+            items += f"{item['description'][:23].ljust(23)}{item['amount']:>7.2f}\n"
+        total = f"Total: {self.get_balance():.2f}"
+        return title + items + total
+
+
+def create_spend_chart(categories):
+    # Calculate total withdrawals for each category
+    withdrawals = {category.name: sum(item["amount"] for item in category.ledger if item["amount"] < 0) for category in categories}
+    
+    # Calculate total spent
+    total_spent = sum(withdrawals.values())
+    
+    # Calculate percentages spent for each category
+    percentages = {name: int((amount / total_spent) * 100) for name, amount in withdrawals.items()}
+    
+    # Create chart title
+    chart = "Percentage spent by category\n"
+    
+    # Define the start of each line for percentages
+    for i in range(100, -1, -10):
+        chart += str(i).rjust(3) + "| "
+        for category in categories:
+            if percentages[category.name] >= i:
+                chart += "o  "
+            else:
+                chart += "   "
+        chart += "\n"
+    
+    # Add horizontal line below bars
+    chart += "    " + "-" * (len(categories) * 3 + 1) + "\n"
+    
+    # Add category names below bars
+    max_name_length = max(len(category.name) for category in categories)
+    for i in range(max_name_length):
+        chart += "     "
+        for category in categories:
+            if i < len(category.name):
+                chart += category.name[i] + "  "
+            else:
+                chart += "   "
+        chart += "\n"
+    
+    return chart.rstrip("\n")  # Remove the trailing newline character
+
+# example of use:
+food_category = Category("Food")
+food_category.deposit(1000, "Initial deposit")
+food_category.withdraw(200, "Groceries")
+
+clothing_category = Category("Clothing")
+clothing_category.deposit(2000, "Initial deposit")
+clothing_category.withdraw(500, "New clothes")
+
+entertainment_category = Category("Entertainment")
+entertainment_category.deposit(1500, "Initial deposit")
+entertainment_category.withdraw(300, "Movie tickets")
+
+categories = [food_category, clothing_category, entertainment_category]
+print(create_spend_chart(categories))
